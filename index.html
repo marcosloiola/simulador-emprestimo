@@ -103,12 +103,26 @@
 
   footer { text-align: center; padding: 20px; font-size: 12px; color: var(--light); }
 
-  @media (max-width: 900px) {
-    main { grid-template-columns: 1fr; padding: 20px 14px 40px; }
+  /* ── RESPONSIVE ── */
+  main > * { min-width: 0; }
+  .right-col { min-width: 0; flex-direction: column; }
+  .charts-grid > * { min-width: 0; }
+
+  @media (max-width: 960px) {
+    main { grid-template-columns: 1fr; padding: 20px 14px 40px; gap: 16px; }
     .charts-grid { grid-template-columns: 1fr; }
     .chart-panel.full-width { grid-column: 1; }
   }
-  @media (max-width: 480px) {
+  @media (min-width: 961px) {
+    main { grid-template-columns: minmax(280px, 320px) minmax(0, 1fr); }
+  }
+  @media (max-width: 520px) {
+    .summary-grid { grid-template-columns: 1fr 1fr; }
+    .s-card .s-value { font-size: 20px; }
+    header { padding: 14px 16px; }
+    header h1 { font-size: 15px; }
+  }
+  @media (max-width: 360px) {
     .summary-grid { grid-template-columns: 1fr; }
   }
 </style>
@@ -245,10 +259,7 @@
         <div class="chart-title">Price vs SAC</div>
         <div class="chart-subtitle">Total de juros pagos em cada sistema</div>
         <canvas id="chart-comparativo" height="220"></canvas>
-        <div class="chart-legend">
-          <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>Price</div>
-          <div class="leg-item"><div class="leg-dot" style="background:#00b37e"></div>SAC</div>
-        </div>
+
       </div>
 
     </div>
@@ -315,8 +326,10 @@ const DPR = window.devicePixelRatio || 1;
 
 function setupCanvas(id) {
   const canvas = document.getElementById(id);
-  const rect = canvas.parentElement.getBoundingClientRect();
-  const w = rect.width - 40; // panel padding
+  const panel = canvas.closest('.chart-panel');
+  // Use the panel's inner width accounting for padding (20px each side = 40px total)
+  const panelW = panel.clientWidth - 40;
+  const w = Math.max(100, panelW);
   const h = parseInt(canvas.getAttribute('height'));
   canvas.style.width = w + 'px';
   canvas.style.height = h + 'px';
@@ -573,12 +586,7 @@ function drawComparativo(PV, i, N_price, N_sac, juros_price, juros_sac, pmt_pric
     ctx.fillText('SAC economiza ' + fmt(economia), w / 2, pad.top + ch + 52);
   }
 
-  // Legend (principal)
-  ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'left';
-  ctx.fillStyle = '#93c5fd';
-  ctx.fillRect(pad.left, pad.top + ch + 18, 10, 10);
-  ctx.fillStyle = '#64748b'; ctx.font = '10px Inter';
-  ctx.fillText('Principal', pad.left + 13, pad.top + ch + 27);
+
 }
 
 // ── GERA SCHEDULE ──────────────────────────────────────────────
@@ -698,14 +706,32 @@ function calcular() {
     const pmt_price = PV * (i * Math.pow(1+i, N_price)) / (Math.pow(1+i, N_price) - 1);
     const juros_price = geraSchedule(PV, i, N_price, 'price').reduce((a,r) => a + r.juros, 0);
 
-    // SAC com mesma parcela inicial equivalente
     const amort_sac = pmt_price - PV * i;
     const N_sac = amort_sac > 0 ? Math.ceil(PV / amort_sac) : N_price;
     const pmt_sac1 = PV / N_sac + PV * i;
     const juros_sac = geraSchedule(PV, i, N_sac, 'sac').reduce((a,r) => a + r.juros, 0);
 
     drawComparativo(PV, i, N_price, N_sac, juros_price, juros_sac, pmt_price, pmt_sac1);
+
+    // Store for resize redraws
+    _lastSchedule = schedule; _lastPV = PV; _lastJuros = totalJuros;
+    _lastN_price = N_price; _lastN_sac = N_sac;
+    _lastJuros_price = juros_price; _lastJuros_sac = juros_sac;
+    _lastPmt_price = pmt_price; _lastPmt_sac1 = pmt_sac1;
   });
+}
+
+// Stores last computed data for resize redraws
+let _lastSchedule = null, _lastPV = 0, _lastJuros = 0;
+let _lastN_price = 0, _lastN_sac = 0, _lastJuros_price = 0, _lastJuros_sac = 0;
+let _lastPmt_price = 0, _lastPmt_sac1 = 0;
+
+function redrawCharts() {
+  if (!_lastSchedule) return;
+  drawSaldo(_lastSchedule);
+  drawComposicao(_lastSchedule);
+  drawDonut(_lastPV, _lastJuros);
+  drawComparativo(_lastPV, 0, _lastN_price, _lastN_sac, _lastJuros_price, _lastJuros_sac, _lastPmt_price, _lastPmt_sac1);
 }
 
 window.onload = () => {
@@ -715,8 +741,15 @@ window.onload = () => {
   });
 };
 
+let resizeTimer;
 window.addEventListener('resize', () => {
-  if (document.getElementById('results').style.display !== 'none') calcular();
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (document.getElementById('results').style.display !== 'none') {
+      // Redraw only charts, no full recalculate
+      requestAnimationFrame(redrawCharts);
+    }
+  }, 120);
 });
 </script>
 </body>
