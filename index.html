@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de Empréstimo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --navy: #0f2042;
+    --blue-accent: #2563eb;
+    --green: #00b37e;
+    --red: #f05252;
+    --bg: #f0f4fb;
+    --card: #ffffff;
+    --border: #e2eaf5;
+    --text: #1e293b;
+    --muted: #64748b;
+    --light: #94a3b8;
+  }
+  body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  header { background: var(--navy); padding: 20px 32px; display: flex; align-items: center; gap: 12px; }
+  .logo-icon { width: 38px; height: 38px; background: var(--blue-accent); border-radius: 10px; display: flex; align-items: center; justify-content: center; }
+  .logo-icon svg { width: 20px; height: 20px; }
+  header h1 { color: white; font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
+  header p { color: #94a3b8; font-size: 13px; margin-top: 1px; }
+
+  /* LAYOUT */
+  main { max-width: 1100px; margin: 0 auto; padding: 32px 20px 60px; display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: start; }
+
+  /* PANEL */
+  .panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .panel-header { background: var(--navy); padding: 16px 20px; color: white; font-size: 13px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; }
+  .panel-body { padding: 20px; }
+  .field { margin-bottom: 18px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .input-wrap { position: relative; }
+  .input-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 600; color: var(--muted); pointer-events: none; }
+  .input-suffix { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 600; color: var(--muted); pointer-events: none; }
+  .field input { width: 100%; padding: 11px 40px 11px 34px; border: 1.5px solid var(--border); border-radius: 9px; font-size: 15px; font-weight: 600; font-family: 'Inter', sans-serif; color: var(--text); background: #f8faff; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+  .field input.no-prefix { padding-left: 12px; }
+  .field input:focus { border-color: var(--blue-accent); box-shadow: 0 0 0 3px rgba(37,99,235,0.12); background: white; }
+  .toggle-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+  .t-btn { padding: 9px; border: 1.5px solid var(--border); border-radius: 8px; background: #f8faff; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; text-align: center; font-family: 'Inter', sans-serif; }
+  .t-btn.active { background: var(--navy); border-color: var(--navy); color: white; }
+  .calc-btn { width: 100%; margin-top: 20px; padding: 13px; background: var(--blue-accent); color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; font-family: 'Inter', sans-serif; transition: background 0.2s; }
+  .calc-btn:hover { background: #1d4ed8; }
+  .alert-box { display: none; background: #fff5f5; border: 1px solid #fed7d7; border-radius: 9px; padding: 12px 14px; margin-top: 16px; font-size: 13px; color: #c53030; line-height: 1.5; }
+  .info-box { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 9px; padding: 11px 14px; margin-top: 14px; font-size: 12.5px; color: #1e40af; line-height: 1.6; }
+  .info-box strong { font-weight: 700; }
+
+  /* RIGHT COL */
+  .right-col { display: flex; flex-direction: column; gap: 20px; }
+
+  /* SUMMARY CARDS */
+  .summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+  .s-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+  .s-card .s-label { font-size: 11px; font-weight: 600; color: var(--light); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+  .s-card .s-value { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; line-height: 1; }
+  .s-card .s-sub { font-size: 12px; color: var(--muted); margin-top: 5px; }
+  .s-card.highlight { background: var(--navy); border-color: var(--navy); }
+  .s-card.highlight .s-label { color: #60a5fa; }
+  .s-card.highlight .s-value { color: white; }
+  .s-card.highlight .s-sub { color: #94a3b8; }
+  .color-green { color: var(--green); }
+  .color-red { color: var(--red); }
+  .color-blue { color: var(--blue-accent); }
+
+  /* CHART PANELS */
+  .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .chart-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .chart-panel.full-width { grid-column: 1 / -1; }
+  .chart-title { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+  .chart-subtitle { font-size: 12px; color: var(--light); margin-bottom: 16px; }
+  .chart-panel canvas { display: block; width: 100%; }
+  .chart-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .leg-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+  .leg-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+
+  /* TABLE */
+  .table-panel { background: var(--card); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+  .table-header h2 { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .toggle-table { font-size: 12px; font-weight: 600; color: var(--blue-accent); background: none; border: none; cursor: pointer; font-family: 'Inter', sans-serif; padding: 4px 8px; border-radius: 6px; }
+  .toggle-table:hover { background: #eff6ff; }
+  .table-wrap { max-height: 380px; overflow-y: auto; display: none; }
+  .table-wrap.open { display: block; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { background: #f8faff; padding: 10px 16px; text-align: right; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; position: sticky; top: 0; border-bottom: 1px solid var(--border); }
+  thead th:first-child { text-align: center; }
+  tbody tr:hover { background: #f8faff; }
+  tbody tr:last-child td { border-bottom: none; }
+  td { padding: 9px 16px; text-align: right; border-bottom: 1px solid #f0f4fb; font-weight: 500; }
+  td:first-child { text-align: center; color: var(--muted); font-weight: 600; }
+  td.td-j { color: var(--red); }
+  td.td-a { color: var(--green); }
+  td.td-s { color: var(--navy); font-weight: 600; }
+  tfoot td { background: var(--navy); color: white; font-weight: 700; padding: 11px 16px; }
+
+  footer { text-align: center; padding: 20px; font-size: 12px; color: var(--light); }
+
+  @media (max-width: 900px) {
+    main { grid-template-columns: 1fr; padding: 20px 14px 40px; }
+    .charts-grid { grid-template-columns: 1fr; }
+    .chart-panel.full-width { grid-column: 1; }
+  }
+  @media (max-width: 480px) {
+    .summary-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-icon">
+    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23"/>
+      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+    </svg>
+  </div>
+  <div>
+    <h1>Simulador de Empréstimo</h1>
+    <p>Calcule parcelas, juros e prazo com clareza</p>
+  </div>
+</header>
+
+<main>
+  <aside>
+    <div class="panel">
+      <div class="panel-header">Parâmetros do Empréstimo</div>
+      <div class="panel-body">
+        <div class="field">
+          <label>Valor do Empréstimo</label>
+          <div class="input-wrap">
+            <span class="input-prefix">R$</span>
+            <input type="number" id="pv" value="50000" min="1" step="1000" />
+          </div>
+        </div>
+        <div class="field">
+          <label>O que você quer calcular?</label>
+          <div class="toggle-btns">
+            <button class="t-btn active" id="btn-parcela" onclick="setModo('parcela')">Nº de Parcelas</button>
+            <button class="t-btn" id="btn-valor" onclick="setModo('valor')">Valor da Parcela</button>
+          </div>
+        </div>
+        <div class="field" id="field-pmt">
+          <label>Valor da Parcela Mensal</label>
+          <div class="input-wrap">
+            <span class="input-prefix">R$</span>
+            <input type="number" id="pmt" value="1000" min="1" step="100" />
+          </div>
+        </div>
+        <div class="field" id="field-n" style="display:none">
+          <label>Número de Parcelas</label>
+          <div class="input-wrap">
+            <input type="number" id="n_input" value="60" min="1" step="1" class="no-prefix" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Taxa de Juros</label>
+          <div class="input-wrap">
+            <input type="number" id="taxa" value="1" min="0.01" step="0.1" class="no-prefix" style="padding-right:50px" />
+            <span class="input-suffix">% a.m.</span>
+          </div>
+        </div>
+        <div class="field">
+          <label>Sistema de Amortização</label>
+          <div class="toggle-btns">
+            <button class="t-btn active" id="btn-price" onclick="setSistema('price')">Price</button>
+            <button class="t-btn" id="btn-sac" onclick="setSistema('sac')">SAC</button>
+          </div>
+        </div>
+        <button class="calc-btn" onclick="calcular()">Calcular</button>
+        <div class="alert-box" id="alerta"></div>
+        <div class="info-box" id="info-minimo"></div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="right-col" id="results" style="display:none">
+
+    <!-- CARDS -->
+    <div class="summary-grid">
+      <div class="s-card highlight">
+        <div class="s-label">Nº de Parcelas</div>
+        <div class="s-value" id="res-n">—</div>
+        <div class="s-sub" id="res-tempo">—</div>
+      </div>
+      <div class="s-card">
+        <div class="s-label">Parcela Mensal</div>
+        <div class="s-value color-blue" id="res-pmt">—</div>
+        <div class="s-sub" id="res-pmt-sub">—</div>
+      </div>
+      <div class="s-card">
+        <div class="s-label">Total de Juros</div>
+        <div class="s-value color-red" id="res-juros">—</div>
+        <div class="s-sub" id="res-juros-pct">—</div>
+      </div>
+      <div class="s-card">
+        <div class="s-label">Total Pago</div>
+        <div class="s-value color-green" id="res-total">—</div>
+        <div class="s-sub" id="res-principal-sub">—</div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="charts-grid">
+
+      <!-- Gráfico 1: Saldo devedor ao longo do tempo -->
+      <div class="chart-panel full-width">
+        <div class="chart-title">Evolução do Saldo Devedor</div>
+        <div class="chart-subtitle">Como a dívida diminui mês a mês</div>
+        <canvas id="chart-saldo" height="180"></canvas>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>Saldo devedor</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e2eaf5"></div>Ponto de metade</div>
+        </div>
+      </div>
+
+      <!-- Gráfico 2: Decomposição da parcela (área empilhada) -->
+      <div class="chart-panel full-width">
+        <div class="chart-title">Composição da Parcela ao Longo do Tempo</div>
+        <div class="chart-subtitle">Quanto vai para juros e quanto amortiza o principal em cada mês</div>
+        <canvas id="chart-composicao" height="180"></canvas>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#00b37e"></div>Amortização</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f05252"></div>Juros</div>
+        </div>
+      </div>
+
+      <!-- Gráfico 3: Donut principal vs juros -->
+      <div class="chart-panel">
+        <div class="chart-title">Custo Total do Crédito</div>
+        <div class="chart-subtitle">Proporção entre principal e juros pagos</div>
+        <canvas id="chart-donut" height="220"></canvas>
+        <div class="chart-legend" id="donut-legend"></div>
+      </div>
+
+      <!-- Gráfico 4: Comparativo Price vs SAC -->
+      <div class="chart-panel">
+        <div class="chart-title">Price vs SAC</div>
+        <div class="chart-subtitle">Total de juros pagos em cada sistema</div>
+        <canvas id="chart-comparativo" height="220"></canvas>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>Price</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#00b37e"></div>SAC</div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-panel">
+      <div class="table-header">
+        <h2>Tabela de Amortização</h2>
+        <button class="toggle-table" id="toggle-btn" onclick="toggleTabela()">Mostrar tabela completa ↓</button>
+      </div>
+      <div class="table-wrap" id="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th><th>Parcela</th><th>Juros</th><th>Amortização</th><th>Saldo Devedor</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+          <tfoot id="tfoot"></tfoot>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>Simulação de caráter educacional. Consulte um especialista financeiro para decisões reais.</footer>
+
+<script>
+let modo = 'parcela';
+let sistema = 'price';
+
+function setModo(m) {
+  modo = m;
+  document.getElementById('btn-parcela').classList.toggle('active', m === 'parcela');
+  document.getElementById('btn-valor').classList.toggle('active', m === 'valor');
+  document.getElementById('field-pmt').style.display = m === 'parcela' ? '' : 'none';
+  document.getElementById('field-n').style.display = m === 'valor' ? '' : 'none';
+  calcular();
+}
+function setSistema(s) {
+  sistema = s;
+  document.getElementById('btn-price').classList.toggle('active', s === 'price');
+  document.getElementById('btn-sac').classList.toggle('active', s === 'sac');
+  calcular();
+}
+function toggleTabela() {
+  const wrap = document.getElementById('table-wrap');
+  const btn = document.getElementById('toggle-btn');
+  wrap.classList.toggle('open');
+  btn.textContent = wrap.classList.contains('open') ? 'Ocultar tabela ↑' : 'Mostrar tabela completa ↓';
+}
+
+function fmt(v) {
+  return 'R$ ' + Math.abs(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+function fmtK(v) {
+  if (v >= 1000) return 'R$ ' + (v/1000).toFixed(0) + 'k';
+  return 'R$ ' + v.toFixed(0);
+}
+
+// ── CANVAS HELPERS ──────────────────────────────────────────────
+const DPR = window.devicePixelRatio || 1;
+
+function setupCanvas(id) {
+  const canvas = document.getElementById(id);
+  const rect = canvas.parentElement.getBoundingClientRect();
+  const w = rect.width - 40; // panel padding
+  const h = parseInt(canvas.getAttribute('height'));
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * DPR;
+  canvas.height = h * DPR;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(DPR, DPR);
+  return { ctx, w, h };
+}
+
+function clearCanvas(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// ── CHART 1: Saldo devedor (linha) ──────────────────────────────
+function drawSaldo(schedule) {
+  const { ctx, w, h } = setupCanvas('chart-saldo');
+  const pad = { top: 16, right: 16, bottom: 36, left: 62 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  const maxSaldo = schedule[0].saldo_antes;
+  const N = schedule.length;
+
+  // Decimation for large N
+  const step = Math.max(1, Math.floor(N / 120));
+  const pts = [];
+  pts.push({ x: 0, y: maxSaldo });
+  for (let k = 0; k < N; k += step) pts.push({ x: k + 1, y: schedule[k].saldo_depois });
+  if (pts[pts.length-1].x !== N) pts.push({ x: N, y: 0 });
+
+  function px(x) { return pad.left + (x / N) * cw; }
+  function py(y) { return pad.top + ch - (y / maxSaldo) * ch; }
+
+  // Grid lines
+  ctx.strokeStyle = '#e2eaf5';
+  ctx.lineWidth = 1;
+  const yTicks = 4;
+  for (let t = 0; t <= yTicks; t++) {
+    const yv = (maxSaldo / yTicks) * t;
+    const y = py(yv);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'right';
+    ctx.fillText(fmtK(yv), pad.left - 6, y + 3.5);
+  }
+
+  // X axis labels
+  const xTicks = Math.min(6, N);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'center';
+  for (let t = 0; t <= xTicks; t++) {
+    const xv = Math.round((N / xTicks) * t);
+    ctx.fillText(xv, px(xv), pad.top + ch + 20);
+  }
+  ctx.fillStyle = '#64748b'; ctx.font = '11px Inter';
+  ctx.fillText('Mês', pad.left + cw / 2, pad.top + ch + 33);
+
+  // Half line
+  const halfY = py(maxSaldo / 2);
+  ctx.strokeStyle = '#cbd5e1'; ctx.lineWidth = 1; ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(pad.left, halfY); ctx.lineTo(pad.left + cw, halfY); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'left';
+  ctx.fillText('50%', pad.left + cw + 2, halfY + 3.5);
+
+  // Fill under curve
+  const grad = ctx.createLinearGradient(0, pad.top, 0, pad.top + ch);
+  grad.addColorStop(0, 'rgba(37,99,235,0.18)');
+  grad.addColorStop(1, 'rgba(37,99,235,0.02)');
+  ctx.beginPath();
+  ctx.moveTo(px(pts[0].x), py(pts[0].y));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i].x), py(pts[i].y));
+  ctx.lineTo(px(pts[pts.length-1].x), py(0));
+  ctx.lineTo(px(pts[0].x), py(0));
+  ctx.closePath();
+  ctx.fillStyle = grad; ctx.fill();
+
+  // Line
+  ctx.beginPath();
+  ctx.moveTo(px(pts[0].x), py(pts[0].y));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(px(pts[i].x), py(pts[i].y));
+  ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2.5; ctx.stroke();
+}
+
+// ── CHART 2: Composição da parcela (área empilhada) ────────────
+function drawComposicao(schedule) {
+  const { ctx, w, h } = setupCanvas('chart-composicao');
+  const pad = { top: 16, right: 16, bottom: 36, left: 62 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+  const N = schedule.length;
+
+  const maxParcela = Math.max(...schedule.map(s => s.parcela));
+  const step = Math.max(1, Math.floor(N / 120));
+  const pts = [];
+  for (let k = 0; k < N; k += step) pts.push(schedule[k]);
+  if (pts[pts.length-1] !== schedule[N-1]) pts.push(schedule[N-1]);
+
+  function px(idx) { return pad.left + (idx / (pts.length - 1)) * cw; }
+  function py(v) { return pad.top + ch - (v / maxParcela) * ch; }
+
+  // Grid
+  ctx.strokeStyle = '#e2eaf5'; ctx.lineWidth = 1;
+  const yTicks = 4;
+  for (let t = 0; t <= yTicks; t++) {
+    const yv = (maxParcela / yTicks) * t;
+    const y = py(yv);
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(pad.left + cw, y); ctx.stroke();
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'right';
+    ctx.fillText(fmtK(yv), pad.left - 6, y + 3.5);
+  }
+  // X labels
+  const xTicks = Math.min(6, pts.length - 1);
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'center';
+  for (let t = 0; t <= xTicks; t++) {
+    const idx = Math.round((pts.length - 1) / xTicks * t);
+    const xv = pts[idx].mes;
+    ctx.fillText(xv, px(idx), pad.top + ch + 20);
+  }
+  ctx.fillStyle = '#64748b'; ctx.font = '11px Inter';
+  ctx.fillText('Mês', pad.left + cw / 2, pad.top + ch + 33);
+
+  // Juros area (red, full height)
+  ctx.beginPath();
+  ctx.moveTo(px(0), py(pts[0].parcela));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(px(i), py(pts[i].parcela));
+  ctx.lineTo(px(pts.length - 1), py(0));
+  ctx.lineTo(px(0), py(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(240,82,82,0.75)'; ctx.fill();
+
+  // Amortização area (green, stacked from 0)
+  ctx.beginPath();
+  ctx.moveTo(px(0), py(pts[0].amort));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(px(i), py(pts[i].amort));
+  ctx.lineTo(px(pts.length - 1), py(0));
+  ctx.lineTo(px(0), py(0));
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(0,179,126,0.8)'; ctx.fill();
+
+  // Dividing line between amort and juros
+  ctx.beginPath();
+  ctx.moveTo(px(0), py(pts[0].amort));
+  for (let i = 1; i < pts.length; i++) ctx.lineTo(px(i), py(pts[i].amort));
+  ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 1.5; ctx.stroke();
+}
+
+// ── CHART 3: Donut ─────────────────────────────────────────────
+function drawDonut(principal, juros) {
+  const { ctx, w, h } = setupCanvas('chart-donut');
+  const cx = w / 2, cy = h / 2 - 10;
+  const r = Math.min(w, h) * 0.35;
+  const total = principal + juros;
+  const principalAngle = (principal / total) * Math.PI * 2;
+  const jurosAngle = (juros / total) * Math.PI * 2;
+  const start = -Math.PI / 2;
+
+  function arc(startA, endA, color) {
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.arc(cx, cy, r, startA, endA);
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    // inner hole
+    ctx.beginPath();
+    ctx.arc(cx, cy, r * 0.58, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff';
+    ctx.fill();
+  }
+
+  // Gap between slices
+  const gap = 0.025;
+  arc(start + gap/2, start + principalAngle - gap/2, '#2563eb');
+  arc(start + principalAngle + gap/2, start + principalAngle + jurosAngle - gap/2, '#f05252');
+
+  // Center text
+  ctx.fillStyle = '#1e293b';
+  ctx.font = 'bold 13px Inter';
+  ctx.textAlign = 'center';
+  ctx.fillText(((juros / total) * 100).toFixed(1) + '%', cx, cy - 4);
+  ctx.fillStyle = '#94a3b8';
+  ctx.font = '11px Inter';
+  ctx.fillText('em juros', cx, cy + 12);
+
+  // Legend
+  const leg = document.getElementById('donut-legend');
+  leg.innerHTML = `
+    <div class="leg-item"><div class="leg-dot" style="background:#2563eb"></div>Principal: ${fmt(principal)} (${((principal/total)*100).toFixed(1)}%)</div>
+    <div class="leg-item"><div class="leg-dot" style="background:#f05252"></div>Juros: ${fmt(juros)} (${((juros/total)*100).toFixed(1)}%)</div>`;
+}
+
+// ── CHART 4: Comparativo Price vs SAC ──────────────────────────
+function drawComparativo(PV, i, N_price, N_sac, juros_price, juros_sac, pmt_price, pmt_sac1) {
+  const { ctx, w, h } = setupCanvas('chart-comparativo');
+  const pad = { top: 24, right: 16, bottom: 60, left: 16 };
+  const cw = w - pad.left - pad.right;
+  const ch = h - pad.top - pad.bottom;
+
+  const items = [
+    { label: 'Price', principal: PV, juros: juros_price, color_p: '#93c5fd', color_j: '#2563eb' },
+    { label: 'SAC',   principal: PV, juros: juros_sac,   color_p: '#6ee7b7', color_j: '#00b37e' },
+  ];
+  const maxVal = Math.max(PV + juros_price, PV + juros_sac);
+  const barW = cw / 2 * 0.52;
+  const gap = cw / 2 * 0.24;
+
+  items.forEach((item, idx) => {
+    const x = pad.left + gap + idx * (barW + gap + cw / 2 * 0.24);
+    const totalH = ch * ((item.principal + item.juros) / maxVal);
+    const principalH = ch * (item.principal / maxVal);
+    const jurosH = totalH - principalH;
+    const barY = pad.top + ch - totalH;
+
+    // Principal portion
+    ctx.fillStyle = item.color_p;
+    ctx.beginPath();
+    ctx.roundRect(x, barY + jurosH, barW, principalH, [0, 0, 6, 6]);
+    ctx.fill();
+
+    // Juros portion
+    ctx.fillStyle = item.color_j;
+    ctx.beginPath();
+    ctx.roundRect(x, barY, barW, jurosH, [6, 6, 0, 0]);
+    ctx.fill();
+
+    // Value label on top
+    ctx.fillStyle = '#1e293b'; ctx.font = 'bold 11px Inter'; ctx.textAlign = 'center';
+    ctx.fillText(fmt(item.principal + item.juros), x + barW / 2, barY - 6);
+
+    // Juros label inside if space
+    if (jurosH > 22) {
+      ctx.fillStyle = 'white'; ctx.font = '10px Inter';
+      ctx.fillText(fmt(item.juros), x + barW / 2, barY + jurosH / 2 + 4);
+    }
+
+    // Bar label
+    ctx.fillStyle = '#475569'; ctx.font = 'bold 12px Inter'; ctx.textAlign = 'center';
+    ctx.fillText(item.label, x + barW / 2, pad.top + ch + 18);
+
+    // Parcela info
+    ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter';
+    const parcelaLabel = idx === 0
+      ? `${fmt(pmt_price)}/mês × ${N_price}p`
+      : `1ª ${fmt(pmt_sac1)} × ${N_sac}p`;
+    ctx.fillText(parcelaLabel, x + barW / 2, pad.top + ch + 33);
+  });
+
+  // Economia label
+  const economia = juros_price - juros_sac;
+  if (economia > 0) {
+    ctx.fillStyle = '#00b37e'; ctx.font = 'bold 11px Inter'; ctx.textAlign = 'center';
+    ctx.fillText('SAC economiza ' + fmt(economia), w / 2, pad.top + ch + 52);
+  }
+
+  // Legend (principal)
+  ctx.fillStyle = '#94a3b8'; ctx.font = '10px Inter'; ctx.textAlign = 'left';
+  ctx.fillStyle = '#93c5fd';
+  ctx.fillRect(pad.left, pad.top + ch + 18, 10, 10);
+  ctx.fillStyle = '#64748b'; ctx.font = '10px Inter';
+  ctx.fillText('Principal', pad.left + 13, pad.top + ch + 27);
+}
+
+// ── GERA SCHEDULE ──────────────────────────────────────────────
+function geraSchedule(PV, i, N, sys) {
+  const amortSAC = PV / N;
+  const PMT_price = PV * (i * Math.pow(1+i,N)) / (Math.pow(1+i,N)-1);
+  let saldo = PV;
+  const rows = [];
+  for (let k = 1; k <= N; k++) {
+    const saldo_antes = saldo;
+    const juros = saldo * i;
+    let amort, parcela;
+    if (sys === 'price') {
+      parcela = k < N ? PMT_price : saldo * (1 + i);
+      amort = parcela - juros;
+    } else {
+      amort = k < N ? amortSAC : saldo;
+      parcela = amort + juros;
+    }
+    saldo = Math.max(0, saldo - amort);
+    rows.push({ mes: k, parcela, juros, amort, saldo_depois: saldo, saldo_antes });
+  }
+  return rows;
+}
+
+// ── MAIN CALCULAR ──────────────────────────────────────────────
+function calcular() {
+  const alerta = document.getElementById('alerta');
+  const infoMin = document.getElementById('info-minimo');
+  const PV = parseFloat(document.getElementById('pv').value) || 0;
+  const taxa = parseFloat(document.getElementById('taxa').value) || 0;
+  const i = taxa / 100;
+
+  alerta.style.display = 'none';
+  infoMin.innerHTML = '';
+
+  if (PV <= 0 || i <= 0) {
+    alerta.style.display = 'block';
+    alerta.textContent = 'Preencha o valor do empréstimo e a taxa de juros corretamente.';
+    return;
+  }
+
+  const minViavel = PV * i;
+  const minViavelStr = fmt(minViavel + 0.01);
+  infoMin.innerHTML = `💡 Parcela mínima viável: <strong>${minViavelStr}</strong> — abaixo disso os juros superam o pagamento e a dívida nunca termina.`;
+
+  let PMT, N;
+
+  if (modo === 'parcela') {
+    PMT = parseFloat(document.getElementById('pmt').value) || 0;
+    if (PMT <= 0) { alerta.style.display = 'block'; alerta.textContent = 'Informe um valor de parcela maior que zero.'; return; }
+    if (PMT <= PV * i) {
+      alerta.style.display = 'block';
+      alerta.innerHTML = `⚠️ Parcela insuficiente. Os juros do 1º mês já são <strong>${fmt(PV * i)}</strong>. Aumente a parcela para pelo menos <strong>${minViavelStr}</strong>.`;
+      return;
+    }
+    if (sistema === 'price') {
+      N = Math.ceil(-Math.log(1 - (PV * i) / PMT) / Math.log(1 + i));
+    } else {
+      const amort = PMT - PV * i;
+      if (amort <= 0) { alerta.style.display = 'block'; alerta.textContent = 'Parcela insuficiente no SAC.'; return; }
+      N = Math.ceil(PV / amort);
+    }
+  } else {
+    N = parseInt(document.getElementById('n_input').value) || 0;
+    if (N <= 0) { alerta.style.display = 'block'; alerta.textContent = 'Informe um número de parcelas válido.'; return; }
+    if (sistema === 'price') {
+      PMT = PV * (i * Math.pow(1+i,N)) / (Math.pow(1+i,N)-1);
+    } else {
+      PMT = PV / N + PV * i;
+    }
+  }
+
+  // Gera schedules
+  const schedule = geraSchedule(PV, i, N, sistema);
+  const totalJuros = schedule.reduce((a, r) => a + r.juros, 0);
+  const totalPago  = schedule.reduce((a, r) => a + r.parcela, 0);
+
+  // Tabela HTML
+  let rows = '';
+  schedule.forEach(r => {
+    rows += `<tr>
+      <td>${r.mes}</td>
+      <td>${fmt(r.parcela)}</td>
+      <td class="td-j">${fmt(r.juros)}</td>
+      <td class="td-a">${fmt(r.amort)}</td>
+      <td class="td-s">${fmt(r.saldo_depois)}</td>
+    </tr>`;
+  });
+  document.getElementById('tbody').innerHTML = rows;
+  document.getElementById('tfoot').innerHTML = `<tr>
+    <td>Total</td><td>${fmt(totalPago)}</td><td>${fmt(totalJuros)}</td><td>${fmt(PV)}</td><td>—</td>
+  </tr>`;
+
+  // Cards
+  const anos = Math.floor(N / 12), meses = N % 12;
+  const tempoStr = anos > 0 && meses > 0 ? `${anos}a e ${meses}m` : anos > 0 ? `${anos} ano${anos>1?'s':''}` : `${meses} mês${meses>1?'es':''}`;
+  document.getElementById('res-n').textContent = N;
+  document.getElementById('res-tempo').textContent = tempoStr;
+  document.getElementById('res-pmt').textContent = sistema === 'price' ? fmt(PMT) : fmt(PV/N + PV*i) + '*';
+  document.getElementById('res-pmt-sub').textContent = sistema === 'sac' ? '* 1ª parcela (SAC)' : 'Parcela fixa (Price)';
+  document.getElementById('res-juros').textContent = fmt(totalJuros);
+  document.getElementById('res-juros-pct').textContent = ((totalJuros / PV) * 100).toFixed(1) + '% do principal';
+  document.getElementById('res-total').textContent = fmt(totalPago);
+  document.getElementById('res-principal-sub').textContent = 'Principal: ' + fmt(PV);
+
+  document.getElementById('results').style.display = 'flex';
+
+  // Charts (needs repaint after display:flex)
+  requestAnimationFrame(() => {
+    drawSaldo(schedule);
+    drawComposicao(schedule);
+    drawDonut(PV, totalJuros);
+
+    // Comparativo: calcular ambos os sistemas
+    const N_price = Math.ceil(-Math.log(1 - (PV * i) / (modo==='parcela' ? PMT : PV*(i*Math.pow(1+i,N))/(Math.pow(1+i,N)-1))) / Math.log(1+i));
+    const pmt_price = PV * (i * Math.pow(1+i, N_price)) / (Math.pow(1+i, N_price) - 1);
+    const juros_price = geraSchedule(PV, i, N_price, 'price').reduce((a,r) => a + r.juros, 0);
+
+    // SAC com mesma parcela inicial equivalente
+    const amort_sac = pmt_price - PV * i;
+    const N_sac = amort_sac > 0 ? Math.ceil(PV / amort_sac) : N_price;
+    const pmt_sac1 = PV / N_sac + PV * i;
+    const juros_sac = geraSchedule(PV, i, N_sac, 'sac').reduce((a,r) => a + r.juros, 0);
+
+    drawComparativo(PV, i, N_price, N_sac, juros_price, juros_sac, pmt_price, pmt_sac1);
+  });
+}
+
+window.onload = () => {
+  calcular();
+  ['pv', 'pmt', 'taxa', 'n_input'].forEach(id => {
+    document.getElementById(id).addEventListener('change', calcular);
+  });
+};
+
+window.addEventListener('resize', () => {
+  if (document.getElementById('results').style.display !== 'none') calcular();
+});
+</script>
+</body>
+</html>
